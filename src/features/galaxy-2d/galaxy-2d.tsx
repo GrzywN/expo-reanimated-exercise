@@ -11,6 +11,23 @@ import Animated, {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+const EARTH_ORBIT_DURATION_MS = 8_000;
+const ANIMATION_CYCLES = 1_000;
+const DEGREES_PER_CYCLE = 360;
+const ANIMATION_TARGET = DEGREES_PER_CYCLE * ANIMATION_CYCLES;
+
+const PLANET_BASE_SIZE_PX = 40;
+const PLANET_SIZE_COMPRESSION = 0.2;
+
+const ORBIT_SPACING = 40;
+const ORBIT_MIN_OFFSET = 50;
+const ORBIT_LOG_SCALE = 2.5;
+
+const SUN_SHADOW_RADIUS = 50;
+const SUN_SHADOW_OPACITY = 0.8;
+const PLANET_SHADOW_RADIUS = 15;
+const PLANET_SHADOW_OPACITY = 0.5;
+
 export interface Planet {
   color: string;
   radius: number;
@@ -40,11 +57,11 @@ const PLANET_ENTIRIES = Object.entries(PLANETS);
  * for better UI visibility.
  *
  * @param {number} radius - The real radius of the planet in km.
- * @param {number} [baseSize=40] - The pixel size of the baseline planet (Earth).
- * @param {number} [k=0.2] - The compression factor (lower = smaller differences).
+ * @param {number} [baseSize=PLANET_BASE_SIZE_PX] - The pixel size of the baseline planet (Earth).
+ * @param {number} [k=PLANET_SIZE_COMPRESSION] - The compression factor (lower = smaller differences).
  * @returns {number} The calculated width/height in pixels.
  */
-const getPlanetSize = (radius: number, baseSize = 40, k = 0.2): number => {
+const getPlanetSize = (radius: number, baseSize = PLANET_BASE_SIZE_PX, k = PLANET_SIZE_COMPRESSION): number => {
   const ratio = radius / PLANETS.Earth.radius;
   return baseSize * Math.pow(ratio, k);
 };
@@ -54,16 +71,16 @@ const getPlanetSize = (radius: number, baseSize = 40, k = 0.2): number => {
  * This prevents outer planets (like Neptune) from rendering off-screen.
  *
  * @param {number} au - Distance from the Sun in Astronomical Units.
- * @param {number} [spacing=40] - Multiplier for the gap between orbits.
- * @param {number} [minOffset=50] - Minimum distance from the Sun's center to the first orbit.
+ * @param {number} [spacing=ORBIT_SPACING] - Multiplier for the gap between orbits.
+ * @param {number} [minOffset=ORBIT_MIN_OFFSET] - Minimum distance from the Sun's center to the first orbit.
  * @returns {number} The distance from (0,0) in pixels.
  */
-const getOrbitRadius = (au: number, spacing = 40, minOffset = 50): number => {
+const getOrbitRadius = (au: number, spacing = ORBIT_SPACING, minOffset = ORBIT_MIN_OFFSET): number => {
   if (au === 0) {
     return 0;
   }
 
-  return minOffset + Math.log1p(au) * spacing * 2.5;
+  return minOffset + Math.log1p(au) * spacing * ORBIT_LOG_SCALE;
 };
 
 /**
@@ -132,8 +149,8 @@ export function Planet({ name, data, timer }: PlanetProps) {
             // ],
             marginLeft: -size / 2,
             marginTop: -size / 2,
-            shadowRadius: name === 'Sun' ? 50 : 15,
-            shadowOpacity: name === 'Sun' ? 0.8 : 0.5,
+            shadowRadius: isSun ? SUN_SHADOW_RADIUS : PLANET_SHADOW_RADIUS,
+            shadowOpacity: isSun ? SUN_SHADOW_OPACITY : PLANET_SHADOW_OPACITY,
           },
         ]}
       />
@@ -164,11 +181,8 @@ export const Galaxy2d = () => {
   useEffect(() => {
     // Animate to a large number so the timer never resets (takes ~63 milions years).
     // Duration is scaled so the rate of increase equals 360 degrees per 8s.
-    const oneCycle = 360;
-    const target = 360_000; // 1000 full rotations
-
-    timer.value = withTiming(target, {
-      duration: 8_000 * (target / oneCycle),
+    timer.value = withTiming(ANIMATION_TARGET, {
+      duration: EARTH_ORBIT_DURATION_MS * ANIMATION_CYCLES,
       easing: Easing.linear
     });
 
