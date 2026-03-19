@@ -1,8 +1,23 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Dimensions } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  Easing,
+  SharedValue,
+} from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+export interface Planet {
+  color: string;
+  radius: number;
+  au: number;
+  shadowColor: string;
+  zIndex: number;
+}
 
 // prettier-ignore
 const PLANETS = {
@@ -15,7 +30,7 @@ const PLANETS = {
   Saturn: { color: '#fef08a', radius: 58232, au: 9.54, shadowColor: '#eab308', zIndex: 40 },
   Uranus: { color: '#22d3ee', radius: 25362, au: 19.22, shadowColor: '#0891b2', zIndex: 30 },
   Neptune: { color: '#4f46e5', radius: 24622, au: 30.06, shadowColor: '#3730a3', zIndex: 20 },
-};
+} satisfies Record<string, Planet>;
 
 const PLANET_ENTIRIES = Object.entries(PLANETS);
 
@@ -51,55 +66,118 @@ const getOrbitRadius = (au: number, spacing = 40, minOffset = 50): number => {
   return minOffset + Math.log1p(au) * spacing * 2.5;
 };
 
+/**
+ * Calculates relative orbital speed based on Kepler's Third Law.
+ * Distance (au) affects the period, so closer planets move faster.
+ * @param {number} au - Distance from the Sun in AU.
+ * @returns {number} Relative speed factor (Earth = 1.0).
+ */
+const getOrbitalSpeed = (au: number): number => {
+  if (au === 0) return 0; // The Sun doesn't orbit itself
+  // Period T² ∝ R³, so velocity v ∝ 1/√R
+  return 1 / Math.sqrt(au);
+};
+
+export interface PlanetProps {
+  name: string;
+  data: Planet;
+  timer: SharedValue<number>;
+}
+
+export function Planet({ name, data, timer }: PlanetProps) {
+  const size = getPlanetSize(data.radius);
+  const orbitRadius = getOrbitRadius(data.au);
+  const speed = getOrbitalSpeed(data.au);
+
+  const hasOrbitRadius = useMemo(() => orbitRadius > 0, [orbitRadius]);
+
+  // const startAngle = React.useMemo(() => Math.random() * 360, []); // RANDOM
+  const startAngle = useMemo(() => 0, []); // 0
+
+  const isSun = name === 'Sun';
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const currentAngle = startAngle + timer.value * speed;
+
+    if (isSun) {
+      return {
+        transform: [],
+      };
+    }
+
+    return {
+      transform: [
+        { rotate: `${currentAngle}deg` }, // To obraca niewidzialny "wysięgnik" ze środka
+        { translateX: orbitRadius }, // To przesuwa planetę na koniec tego wysięgnika
+        { rotate: `-${currentAngle}deg` }, // (Opcjonalnie) Kontr-rotacja, by planeta "nie wirowała" wokół własnej osi
+      ],
+    };
+  });
+
+  return (
+    <Fragment key={name}>
+      <Animated.View
+        style={[
+          styles.planet,
+          animatedStyle,
+          {
+            width: size,
+            height: size,
+            backgroundColor: data.color,
+            shadowColor: data.shadowColor,
+            zIndex: data.zIndex,
+            // transform: [
+            //   { translateX: orbitRadius - size / 2 },
+            //   { translateY: -size / 2 },
+            // ],
+            marginLeft: -size / 2,
+            marginTop: -size / 2,
+            shadowRadius: name === 'Sun' ? 50 : 15,
+            shadowOpacity: name === 'Sun' ? 0.8 : 0.5,
+          },
+        ]}
+      />
+
+      {hasOrbitRadius && (
+        <View
+          style={[
+            styles.orbitLine,
+            {
+              width: orbitRadius * 2,
+              height: orbitRadius * 2,
+              borderRadius: orbitRadius,
+              transform: [
+                { translateX: -orbitRadius },
+                { translateY: -orbitRadius },
+              ],
+            },
+          ]}
+        />
+      )}
+    </Fragment>
+  );
+}
+
 export const Galaxy2d = () => {
+  const timer = useSharedValue(0);
+
+  useEffect(() => {
+    timer.value = withRepeat(
+      withTiming(360, {
+        duration: 8_000, // Bazowy czas pełnego obrotu Ziemi (8 sekund)
+        easing: Easing.linear,
+      }),
+      -1, // Powtarzaj w nieskończoność
+      false // Nie odwracaj animacji (zawsze w tę samą stronę)
+    );
+  }, [timer]);
+
   return (
     <View style={styles.container}>
       <Animated.View style={styles.centerPoint}>
-        {PLANET_ENTIRIES.map(([name, data]) => {
-          const size = getPlanetSize(data.radius);
-          const orbitRadius = getOrbitRadius(data.au);
-          const hasOrbitRadius = orbitRadius > 0;
-
-          return (
-            <Fragment key={name}>
-              <View
-                style={[
-                  styles.planet,
-                  {
-                    width: size,
-                    height: size,
-                    backgroundColor: data.color,
-                    shadowColor: data.shadowColor,
-                    zIndex: data.zIndex,
-                    transform: [
-                      { translateX: orbitRadius - size / 2 },
-                      { translateY: -size / 2 },
-                    ],
-                    shadowRadius: name === 'Sun' ? 50 : 15,
-                    shadowOpacity: name === 'Sun' ? 0.8 : 0.5,
-                  },
-                ]}
-              />
-
-              {hasOrbitRadius && (
-                <View
-                  style={[
-                    styles.orbitLine,
-                    {
-                      width: orbitRadius * 2,
-                      height: orbitRadius * 2,
-                      borderRadius: orbitRadius,
-                      transform: [
-                        { translateX: -orbitRadius },
-                        { translateY: -orbitRadius },
-                      ],
-                    },
-                  ]}
-                />
-              )}
-            </Fragment>
-          );
-        })}
+        {PLANET_ENTIRIES.map(([name, data]) => (
+          <Planet name={name} data={data} timer={timer} key={name} />
+        ))}
       </Animated.View>
     </View>
   );
@@ -132,5 +210,6 @@ const styles = StyleSheet.create({
     // borderColor: 'rgba(255,255,255,0.05)',
     borderColor: 'rgba(255,255,255,0.5)', // DEBUG - MORE VISIBLE
     borderStyle: 'dashed',
+    zIndex: -1,
   },
 });
