@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Dimensions } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withTiming,
   Easing,
   SharedValue,
@@ -107,9 +107,9 @@ export function Planet({ name, data, timer }: PlanetProps) {
 
     return {
       transform: [
-        { rotate: `${currentAngle}deg` }, // To obraca niewidzialny "wysięgnik" ze środka
-        { translateX: orbitRadius }, // To przesuwa planetę na koniec tego wysięgnika
-        { rotate: `-${currentAngle}deg` }, // (Opcjonalnie) Kontr-rotacja, by planeta "nie wirowała" wokół własnej osi
+        { rotate: `${currentAngle}deg` }, // Rotates the invisible "arm" from the center
+        { translateX: orbitRadius }, // Moves the planet to the end of that arm
+        { rotate: `-${currentAngle}deg` }, // Counter-rotation so the planet doesn't spin on its own axis
       ],
     };
   });
@@ -162,14 +162,17 @@ export const Galaxy2d = () => {
   const timer = useSharedValue(0);
 
   useEffect(() => {
-    timer.value = withRepeat(
-      withTiming(360, {
-        duration: 8_000, // Bazowy czas pełnego obrotu Ziemi (8 sekund)
-        easing: Easing.linear,
-      }),
-      -1, // Powtarzaj w nieskończoność
-      false // Nie odwracaj animacji (zawsze w tę samą stronę)
-    );
+    // Animate to a large number so the timer never resets (takes ~63 milions years).
+    // Duration is scaled so the rate of increase equals 360 degrees per 8s.
+    const oneCycle = 360;
+    const target = 360_000; // 1000 full rotations
+
+    timer.value = withTiming(target, {
+      duration: 8_000 * (target / oneCycle),
+      easing: Easing.linear
+    });
+
+    return () => cancelAnimation(timer);
   }, [timer]);
 
   return (
@@ -207,8 +210,7 @@ const styles = StyleSheet.create({
   orbitLine: {
     position: 'absolute',
     borderWidth: 1,
-    // borderColor: 'rgba(255,255,255,0.05)',
-    borderColor: 'rgba(255,255,255,0.5)', // DEBUG - MORE VISIBLE
+    borderColor: 'rgba(255,255,255,0.05)',
     borderStyle: 'dashed',
     zIndex: -1,
   },
