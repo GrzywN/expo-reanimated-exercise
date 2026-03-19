@@ -19,18 +19,33 @@ const PLANETS = {
 
 const PLANET_ENTIRIES = Object.entries(PLANETS);
 
-// PERF: compute it before-hand at compile time or init
-// 0.4 for readability on the mobile device
-const getPlanetSize = (radius: number, baseSize = 40, k = 0.2) => {
+/**
+ * Calculates the visual size of a planet based on its physical radius.
+ * Uses a power-law scaling (k) to compress the massive scale differences
+ * for better UI visibility.
+ *
+ * @param {number} radius - The real radius of the planet in km.
+ * @param {number} [baseSize=40] - The pixel size of the baseline planet (Earth).
+ * @param {number} [k=0.2] - The compression factor (lower = smaller differences).
+ * @returns {number} The calculated width/height in pixels.
+ */
+const getPlanetSize = (radius: number, baseSize = 40, k = 0.2): number => {
   const ratio = radius / PLANETS.Earth.radius;
   return baseSize * Math.pow(ratio, k);
 };
 
-// Calculating the orbital radius (distance from the Sun)
-// We use Math.log to fit the system on the screen while maintaining the distance ratio
-const getOrbitRadius = (au: number, spacing = 40, minOffset = 50) => {
+/**
+ * Calculates the orbit's radius (distance from the center) using logarithmic scaling.
+ * This prevents outer planets (like Neptune) from rendering off-screen.
+ *
+ * @param {number} au - Distance from the Sun in Astronomical Units.
+ * @param {number} [spacing=40] - Multiplier for the gap between orbits.
+ * @param {number} [minOffset=50] - Minimum distance from the Sun's center to the first orbit.
+ * @returns {number} The distance from (0,0) in pixels.
+ */
+const getOrbitRadius = (au: number, spacing = 40, minOffset = 50): number => {
   if (au === 0) {
-    return 0; // Słońce w centrum
+    return 0;
   }
 
   return minOffset + Math.log1p(au) * spacing * 2.5;
