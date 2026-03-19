@@ -1,9 +1,5 @@
-import { Text, View } from 'react-native';
+import { Galaxy2d } from '@/features/galaxy-2d/galaxy-2d';
 
 export default function HomeScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Home</Text>
-    </View>
-  );
+  return <Galaxy2d />;
 }
