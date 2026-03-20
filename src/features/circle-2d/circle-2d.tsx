@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+// https://www.joshwcomeau.com/svg/interactive-guide-to-paths/
 export const Circle2d = () => {
   // M - Move to a point
   // L - Line to a point
