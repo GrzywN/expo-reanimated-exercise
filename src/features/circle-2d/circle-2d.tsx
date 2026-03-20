@@ -1,46 +1,59 @@
-import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import {
+  Canvas,
+  Group,
+  interpolatePaths,
+  Path,
+  Skia,
+} from '@shopify/react-native-skia';
 import {
   cancelAnimation,
-  createAnimatedComponent,
   Easing,
-  Extrapolation,
-  interpolate,
   ReduceMotion,
-  useAnimatedProps,
+  useDerivedValue,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
 
-const AnimatedPath = createAnimatedComponent(Path);
-
-const N = 70;
+const N = 100_000;
 const CX = 50;
 const CY = 50;
 const R = 50;
 
 export type Point = { x: number; y: number };
 
-const buildPoints = (): { from: Point; to: Point }[] => {
-  const startAngle = Math.PI / 2;
-  const anglePerSegment = (Math.PI * 2) / N;
+const buildPathString = (pts: Point[]) =>
+  pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`).join(' ');
 
-  return Array.from({ length: N + 1 }, (_, i) => {
-    const angle = startAngle + anglePerSegment * i;
+const startAngle = Math.PI / 2;
+const anglePerSegment = (Math.PI * 2) / N;
 
-    return {
-      from: { x: (100 * i) / N, y: 50 },
-      to: { x: CX + R * Math.cos(angle), y: CY + R * Math.sin(angle) },
-    };
-  });
+const makePath = (pts: Point[]) => {
+  const path = Skia.Path.MakeFromSVGString(buildPathString(pts));
+  if (!path) throw new Error('Failed to create Skia path from SVG string');
+  return path;
 };
 
-const points = buildPoints();
+const fromPath = makePath(
+  Array.from({ length: N + 1 }, (_, i) => ({ x: (100 * i) / N, y: 50 }))
+);
+
+const toPath = makePath(
+  Array.from({ length: N + 1 }, (_, i) => {
+    const angle = startAngle + anglePerSegment * i;
+    return { x: CX + R * Math.cos(angle), y: CY + R * Math.sin(angle) };
+  })
+);
 
 // https://www.joshwcomeau.com/svg/interactive-guide-to-paths/
 export const Circle2d = () => {
+  const { width } = useWindowDimensions();
+  const canvasSize = width * 0.5;
+  const canvasStyle = useMemo(() => ({ width: canvasSize, height: canvasSize }), [canvasSize]);
+  const groupTransform = useMemo(() => [{ scale: canvasSize / 100 }], [canvasSize]);
+
   const timer = useSharedValue(0);
 
   useEffect(() => {
@@ -57,37 +70,22 @@ export const Circle2d = () => {
     return () => cancelAnimation(timer);
   }, [timer]);
 
-  const animatedPathProps = useAnimatedProps(() => {
-    const segments = points.map((p, i) => {
-      const x = interpolate(
-        timer.value,
-        [0, 1],
-        [p.from.x, p.to.x],
-        Extrapolation.CLAMP
-      );
-      const y = interpolate(
-        timer.value,
-        [0, 1],
-        [p.from.y, p.to.y],
-        Extrapolation.CLAMP
-      );
-
-      return i === 0 ? `M ${x},${y}` : `L ${x},${y}`;
-    });
-
-    return { d: segments.join(' ') };
-  });
+  const animatedPath = useDerivedValue(() =>
+    interpolatePaths(timer.value, [0, 1], [fromPath, toPath])
+  );
 
   return (
     <View style={styles.container}>
-      <Svg viewBox="0 0 100 100" width="50%" height="50%">
-        <AnimatedPath
-          animatedProps={animatedPathProps}
-          strokeWidth={2.5}
-          stroke="red"
-          fill="none"
-        />
-      </Svg>
+      <Canvas style={canvasStyle}>
+        <Group transform={groupTransform}>
+          <Path
+            path={animatedPath}
+            strokeWidth={2.5}
+            color="red"
+            style="stroke"
+          />
+        </Group>
+      </Canvas>
     </View>
   );
 };
