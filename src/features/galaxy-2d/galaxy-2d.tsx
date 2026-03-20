@@ -61,7 +61,11 @@ const PLANET_ENTIRIES = Object.entries(PLANETS);
  * @param {number} [k=PLANET_SIZE_COMPRESSION] - The compression factor (lower = smaller differences).
  * @returns {number} The calculated width/height in pixels.
  */
-const getPlanetSize = (radius: number, baseSize = PLANET_BASE_SIZE_PX, k = PLANET_SIZE_COMPRESSION): number => {
+const getPlanetSize = (
+  radius: number,
+  baseSize = PLANET_BASE_SIZE_PX,
+  k = PLANET_SIZE_COMPRESSION
+): number => {
   const ratio = radius / PLANETS.Earth.radius;
   return baseSize * Math.pow(ratio, k);
 };
@@ -75,7 +79,11 @@ const getPlanetSize = (radius: number, baseSize = PLANET_BASE_SIZE_PX, k = PLANE
  * @param {number} [minOffset=ORBIT_MIN_OFFSET] - Minimum distance from the Sun's center to the first orbit.
  * @returns {number} The distance from (0,0) in pixels.
  */
-const getOrbitRadius = (au: number, spacing = ORBIT_SPACING, minOffset = ORBIT_MIN_OFFSET): number => {
+const getOrbitRadius = (
+  au: number,
+  spacing = ORBIT_SPACING,
+  minOffset = ORBIT_MIN_OFFSET
+): number => {
   if (au === 0) {
     return 0;
   }
@@ -114,7 +122,14 @@ export function Planet({ name, data, timer }: PlanetProps) {
   const isSun = name === 'Sun';
 
   const animatedStyle = useAnimatedStyle(() => {
-    const currentAngle = startAngle + timer.value * speed;
+    const angleInRadians = (timer.value * Math.PI) / 180;
+    const currentAngle = startAngle + angleInRadians * speed;
+
+    const startingX = 0;
+    const startingY = 0;
+
+    const x = startingX + orbitRadius * Math.sin(currentAngle);
+    const y = startingY + orbitRadius * Math.cos(currentAngle);
 
     if (isSun) {
       return {
@@ -123,11 +138,7 @@ export function Planet({ name, data, timer }: PlanetProps) {
     }
 
     return {
-      transform: [
-        { rotate: `${currentAngle}deg` }, // Rotates the invisible "arm" from the center
-        { translateX: orbitRadius }, // Moves the planet to the end of that arm
-        { rotate: `-${currentAngle}deg` }, // Counter-rotation so the planet doesn't spin on its own axis
-      ],
+      transform: [{ translateX: x }, { translateY: y }],
     };
   });
 
@@ -183,7 +194,7 @@ export const Galaxy2d = () => {
     // Duration is scaled so the rate of increase equals 360 degrees per 8s.
     timer.value = withTiming(ANIMATION_TARGET, {
       duration: EARTH_ORBIT_DURATION_MS * ANIMATION_CYCLES,
-      easing: Easing.linear
+      easing: Easing.linear,
     });
 
     return () => cancelAnimation(timer);
