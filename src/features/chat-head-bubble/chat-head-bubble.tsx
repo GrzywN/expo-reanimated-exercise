@@ -94,47 +94,11 @@ export function ChatHeadBubble() {
       <View onLayout={onLayout} style={styles.wrapper}>
         <GestureDetector gesture={pan}>
           <Animated.View style={[styles.grab, animatedStyles]}>
-            <Train />
+            <View style={styles.ball} />
           </Animated.View>
         </GestureDetector>
-        <TrainTracks />
       </View>
     </GestureHandlerRootView>
-  );
-}
-
-function TrainTracks() {
-  return (
-    <View style={{ flexDirection: 'column' }}>
-      <View style={styles.rail} />
-      <View style={{ flexDirection: 'row' }}>
-        {Array.from({ length: 20 }).map((_, i) => (
-          <View key={i} style={styles.track} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function Train() {
-  return (
-    <View style={styles.column}>
-      <View style={styles.row}>
-        <View style={styles.back} />
-        <View style={styles.chimney} />
-      </View>
-      <View style={styles.row}>
-        <View style={styles.body} />
-        <View style={styles.front} />
-      </View>
-      <View style={styles.stripe} />
-      <View style={styles.underbody} />
-      <View style={styles.row}>
-        <View style={styles.wheel} />
-        <View style={styles.wheel} />
-        <View style={styles.wheel} />
-      </View>
-    </View>
   );
 }
 
@@ -144,6 +108,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
+    backgroundColor: '#fff',
   },
   wrapper: {
     flex: 1,
@@ -152,64 +117,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   grab: {
-    cursor: 'grab',
+    cursor: 'pointer',
   },
-  row: { flexDirection: 'row' },
-  column: { flexDirection: 'column' },
-  wheel: {
-    height: 50,
-    width: 50,
-    backgroundColor: '#537FE7',
-    borderRadius: 50,
-    marginHorizontal: 5,
-  },
-  underbody: {
+  ball: {
     width: SIZE,
-    height: 30,
-    backgroundColor: 'black',
-    top: 30,
-  },
-  stripe: {
-    width: SIZE,
-    height: 10,
-    backgroundColor: 'red',
-    top: 30,
-  },
-  front: {
-    width: 50,
-    height: 50,
-    backgroundColor: 'black',
-    top: 30,
-  },
-  body: {
-    width: 130,
-    height: 50,
-    backgroundColor: '#537FE7',
-    top: 30,
-  },
-  chimney: {
-    width: 20,
-    height: 30,
-    backgroundColor: 'black',
-    top: 30,
-    right: 15,
-    marginLeft: 'auto',
-  },
-  back: {
-    width: 50,
-    height: 15,
-    backgroundColor: '#537FE7',
-    top: 30 + 15,
-  },
-  track: {
-    height: 10,
-    width: 20,
-    backgroundColor: '#B8621B',
-    marginHorizontal: 15,
-  },
-  rail: {
-    width: '100%',
-    height: 10,
-    backgroundColor: 'gray',
+    height: SIZE,
+    borderRadius: SIZE / 2,
+    backgroundColor: '#001a72',
   },
 });
