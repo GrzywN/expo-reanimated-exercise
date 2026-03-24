@@ -5,6 +5,7 @@ export default function TabLayout() {
     <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" options={{ title: 'Galaxy 2D' }} />
       <Tabs.Screen name="circle" options={{ title: 'Circle' }} />
+      <Tabs.Screen name="galaxy-3d" options={{ title: 'Galaxy 3D' }} />
     </Tabs>
   );
 }

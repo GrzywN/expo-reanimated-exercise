@@ -51,8 +51,14 @@ const toPath = makePath(
 export const Circle2d = () => {
   const { width } = useWindowDimensions();
   const canvasSize = width * 0.5;
-  const canvasStyle = useMemo(() => ({ width: canvasSize, height: canvasSize }), [canvasSize]);
-  const groupTransform = useMemo(() => [{ scale: canvasSize / 100 }], [canvasSize]);
+  const canvasStyle = useMemo(
+    () => ({ width: canvasSize, height: canvasSize }),
+    [canvasSize]
+  );
+  const groupTransform = useMemo(
+    () => [{ scale: canvasSize / 100 }],
+    [canvasSize]
+  );
 
   const timer = useSharedValue(0);
 
