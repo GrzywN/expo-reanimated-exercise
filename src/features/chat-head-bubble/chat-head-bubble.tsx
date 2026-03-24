@@ -4,6 +4,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDecay,
+  SharedValue,
 } from 'react-native-reanimated';
 import {
   Gesture,
@@ -13,6 +14,47 @@ import {
 } from 'react-native-gesture-handler';
 
 const SIZE = 180;
+
+/** Energy retained after each wall bounce. `1.0` = perfect bounce, `0.0` = full stop. */
+const BOUNCE_DAMPING = 0.5 as const;
+
+/** Float tolerance (px) for wall collision detection. */
+const WALL_EPSILON = 1 as const;
+
+/** Minimum velocity (px/s) to trigger another bounce. Below this the movement is imperceptible. */
+const MIN_BOUNCE_VELOCITY = 10 as const;
+
+function bounceDecay(
+  offset: SharedValue<number>,
+  velocity: number,
+  min: number,
+  max: number
+) {
+  'worklet';
+  offset.value = withDecay(
+    {
+      velocity,
+      clamp: [min, max],
+      rubberBandEffect: false,
+    },
+    (finished) => {
+      'worklet';
+      if (!finished) {
+        return;
+      }
+
+      const isAtMinWall = offset.value <= min + WALL_EPSILON;
+      const isAtMaxWall = offset.value >= max - WALL_EPSILON;
+
+      const isAtWall = isAtMinWall || isAtMaxWall;
+      const hasBounceableVelocity = Math.abs(velocity) > MIN_BOUNCE_VELOCITY;
+
+      if (isAtWall && hasBounceableVelocity) {
+        bounceDecay(offset, -velocity * BOUNCE_DAMPING, min, max);
+      }
+    }
+  );
+}
 
 export function ChatHeadBubble() {
   const offsetX = useSharedValue(0);
@@ -32,17 +74,15 @@ export function ChatHeadBubble() {
       offsetY.value += event.changeY;
     })
     .onFinalize((event) => {
-      offsetX.value = withDecay({
-        velocity: event.velocityX,
-        rubberBandEffect: true,
-        clamp: [-(width.value / 2) + SIZE / 2, width.value / 2 - SIZE / 2],
-      });
+      const { velocityX, velocityY } = event;
 
-      offsetY.value = withDecay({
-        velocity: event.velocityY,
-        rubberBandEffect: true,
-        clamp: [-(height.value / 2) + SIZE / 2, height.value / 2 - SIZE / 2],
-      });
+      const minX = -(width.value / 2) + SIZE / 2;
+      const maxX = width.value / 2 - SIZE / 2;
+      const minY = -(height.value / 2) + SIZE / 2;
+      const maxY = height.value / 2 - SIZE / 2;
+
+      bounceDecay(offsetX, velocityX, minX, maxX);
+      bounceDecay(offsetY, velocityY, minY, maxY);
     });
 
   const animatedStyles = useAnimatedStyle(() => ({
@@ -68,9 +108,9 @@ function TrainTracks() {
     <View style={{ flexDirection: 'column' }}>
       <View style={styles.rail} />
       <View style={{ flexDirection: 'row' }}>
-        {Array.from({ length: 20 }).map((_, i) => {
-          return <View key={i} style={styles.track} />;
-        })}
+        {Array.from({ length: 20 }).map((_, i) => (
+          <View key={i} style={styles.track} />
+        ))}
       </View>
     </View>
   );
@@ -114,17 +154,8 @@ const styles = StyleSheet.create({
   grab: {
     cursor: 'grab',
   },
-  text: {
-    color: 'white',
-    textTransform: 'uppercase',
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-  },
-  column: {
-    flexDirection: 'column',
-  },
+  row: { flexDirection: 'row' },
+  column: { flexDirection: 'column' },
   wheel: {
     height: 50,
     width: 50,
