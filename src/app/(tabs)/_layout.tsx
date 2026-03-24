@@ -10,6 +10,10 @@ export default function TabLayout() {
         name="chat-head-bubble"
         options={{ title: 'Chat Head Bubble' }}
       />
+      <Tabs.Screen
+        name="set"
+        options={{ title: 'Shared Element Transition' }}
+      />
     </Tabs>
   );
 }
