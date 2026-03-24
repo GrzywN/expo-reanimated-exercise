@@ -6,6 +6,10 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ title: 'Galaxy 2D' }} />
       <Tabs.Screen name="circle" options={{ title: 'Circle' }} />
       <Tabs.Screen name="galaxy-3d" options={{ title: 'Galaxy 3D' }} />
+      <Tabs.Screen
+        name="chat-head-bubble"
+        options={{ title: 'Chat Head Bubble' }}
+      />
     </Tabs>
   );
 }
