@@ -15,27 +15,38 @@ import {
 const SIZE = 180;
 
 export function ChatHeadBubble() {
-  const offset = useSharedValue<number>(0);
-  const width = useSharedValue<number>(0);
+  const offsetX = useSharedValue(0);
+  const offsetY = useSharedValue(0);
+
+  const width = useSharedValue(0);
+  const height = useSharedValue(0);
 
   const onLayout = (event: LayoutChangeEvent) => {
     width.value = event.nativeEvent.layout.width;
+    height.value = event.nativeEvent.layout.height;
   };
 
   const pan: PanGesture = Gesture.Pan()
     .onChange((event) => {
-      offset.value += event.changeX;
+      offsetX.value += event.changeX;
+      offsetY.value += event.changeY;
     })
     .onFinalize((event) => {
-      offset.value = withDecay({
+      offsetX.value = withDecay({
         velocity: event.velocityX,
         rubberBandEffect: true,
         clamp: [-(width.value / 2) + SIZE / 2, width.value / 2 - SIZE / 2],
       });
+
+      offsetY.value = withDecay({
+        velocity: event.velocityY,
+        rubberBandEffect: true,
+        clamp: [-(height.value / 2) + SIZE / 2, height.value / 2 - SIZE / 2],
+      });
     });
 
   const animatedStyles = useAnimatedStyle(() => ({
-    transform: [{ translateX: offset.value }],
+    transform: [{ translateX: offsetX.value }, { translateY: offsetY.value }],
   }));
 
   return (
