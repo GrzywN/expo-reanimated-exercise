@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -36,7 +37,7 @@ export const ShakeInput = ({ validPin = '1234' }: ShakeInputProps) => {
     if (pin === validPin) {
       setError('');
       setPin('');
-      alert('Correct PIN!');
+      Alert.alert('Correct PIN!');
 
       return;
     }
@@ -52,6 +53,8 @@ export const ShakeInput = ({ validPin = '1234' }: ShakeInputProps) => {
       withTiming(6, { duration: 50, easing: Easing.inOut(Easing.quad) }),
       withTiming(0, { duration: 50, easing: Easing.in(Easing.quad) })
     );
+
+    // withSpring possible
 
     setError('Incorrect PIN');
     setPin('');

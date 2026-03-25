@@ -15,6 +15,7 @@ export default function TabLayout() {
         options={{ title: 'Shared Element Transition' }}
       />
       <Tabs.Screen name="shake-input" options={{ title: 'Shake Input' }} />
+      <Tabs.Screen name="sensor" options={{ title: 'Sensor' }} />
     </Tabs>
   );
 }
