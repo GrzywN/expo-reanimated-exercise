@@ -10,6 +10,8 @@ import {
 import Animated, {
   useAnimatedProps,
   useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
 } from 'react-native-reanimated';
 
@@ -21,6 +23,14 @@ export function Carousel() {
   const scrollView = useRef<ScrollView>(null);
 
   const offsetX = useSharedValue(0);
+
+  const backgroundOpacity = useDerivedValue(() => {
+    if (offsetX.value > windowWidth) {
+      return 1;
+    }
+
+    return offsetX.value / windowWidth;
+  }, [offsetX]);
 
   const handleScroll = useAnimatedScrollHandler((event) => {
     offsetX.value = event.contentOffset.x;
@@ -36,7 +46,11 @@ export function Carousel() {
     });
   };
 
-  const animatedProps = useAnimatedProps(() => ({
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: backgroundOpacity.value,
+  }));
+
+  const debugAnimatedProps = useAnimatedProps(() => ({
     text: `Scroll offset: ${Math.round(offsetX.value)}px`,
     defaultValue: `Scroll offset: ${offsetX.value}x`,
   }));
@@ -44,28 +58,12 @@ export function Carousel() {
   return (
     <View style={styles.container}>
       <Animated.ScrollView ref={scrollView} horizontal onScroll={handleScroll}>
-        <View
-          style={{
-            width: windowWidth,
-            aspectRatio: 1,
-            backgroundColor: '#FF0000',
-          }}
-        />
-        <View
-          style={{
-            width: windowWidth,
-            aspectRatio: 1,
-            backgroundColor: '#00FF00',
-          }}
-        />
-        <View
-          style={{
-            width: windowWidth,
-            aspectRatio: 1,
-            backgroundColor: '#0000FF',
-          }}
-        />
+        <View style={[styles.slide, styles.slideRed]} />
+        <View style={[styles.slide, styles.slideGreen]} />
+        <View style={[styles.slide, styles.slideBlue]} />
       </Animated.ScrollView>
+
+      <Animated.View style={[styles.background, animatedStyle]} />
 
       <View>
         <Button title="1" onPress={() => handleScrollTo(0)} />
@@ -74,7 +72,7 @@ export function Carousel() {
       </View>
 
       <AnimatedTextInput
-        animatedProps={animatedProps}
+        animatedProps={debugAnimatedProps}
         editable={false}
         defaultValue=""
       />
@@ -88,5 +86,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 24,
+  },
+  slide: {
+    width: windowWidth,
+    aspectRatio: 1,
+  },
+  slideRed: {
+    backgroundColor: '#FF0000',
+  },
+  slideGreen: {
+    backgroundColor: '#00FF00',
+  },
+  slideBlue: {
+    backgroundColor: '#0000FF',
+  },
+  background: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: '#FFF000',
+    zIndex: -1,
   },
 });
