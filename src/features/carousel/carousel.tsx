@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import {
   Button,
   Dimensions,
@@ -9,10 +8,10 @@ import {
 } from 'react-native';
 import Animated, {
   useAnimatedProps,
-  useAnimatedScrollHandler,
+  useAnimatedRef,
   useAnimatedStyle,
   useDerivedValue,
-  useSharedValue,
+  useScrollOffset,
 } from 'react-native-reanimated';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
@@ -20,26 +19,21 @@ const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 const { width: windowWidth } = Dimensions.get('window');
 
 export function Carousel() {
-  const scrollView = useRef<ScrollView>(null);
-
-  const offsetX = useSharedValue(0);
+  const scrollViewRef = useAnimatedRef<ScrollView>();
+  const scrollOffset = useScrollOffset(scrollViewRef);
 
   const backgroundOpacity = useDerivedValue(() => {
-    if (offsetX.value > windowWidth) {
+    if (scrollOffset.value > windowWidth) {
       return 1;
     }
 
-    return offsetX.value / windowWidth;
-  }, [offsetX]);
-
-  const handleScroll = useAnimatedScrollHandler((event) => {
-    offsetX.value = event.contentOffset.x;
-  });
+    return scrollOffset.value / windowWidth;
+  }, [scrollOffset]);
 
   const handleScrollTo = (page: number) => {
-    console.assert(Boolean(scrollView.current));
+    console.assert(Boolean(scrollViewRef.current));
 
-    scrollView.current?.scrollTo({
+    scrollViewRef.current?.scrollTo({
       x: windowWidth * page,
       y: 0,
       animated: true,
@@ -51,13 +45,13 @@ export function Carousel() {
   }));
 
   const debugAnimatedProps = useAnimatedProps(() => ({
-    text: `Scroll offset: ${Math.round(offsetX.value)}px`,
-    defaultValue: `Scroll offset: ${offsetX.value}x`,
+    text: `Scroll offset: ${Math.round(scrollOffset.value)}px`,
+    defaultValue: `Scroll offset: ${scrollOffset.value}x`,
   }));
 
   return (
     <View style={styles.container}>
-      <Animated.ScrollView ref={scrollView} horizontal onScroll={handleScroll}>
+      <Animated.ScrollView ref={scrollViewRef} horizontal>
         <View style={[styles.slide, styles.slideRed]} />
         <View style={[styles.slide, styles.slideGreen]} />
         <View style={[styles.slide, styles.slideBlue]} />
