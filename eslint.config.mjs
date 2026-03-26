@@ -23,4 +23,12 @@ export default defineConfig([
   {
     ignores: ['node_modules/'],
   },
+  {
+    files: ['*.config.js'],
+    languageOptions: {
+      parserOptions: {
+        requireConfigFile: false,
+      },
+    },
+  },
 ]);
