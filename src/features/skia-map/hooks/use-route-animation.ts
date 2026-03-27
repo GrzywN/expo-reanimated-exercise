@@ -42,64 +42,62 @@ export function useRouteAnimation({
     return () => cancelAnimation(progress);
   }, [progress, duration]);
 
-  const pathEnd = useDerivedValue(() => {
-    'worklet';
+  const currentFrame = useDerivedValue(() => {
     if (frames.value.length === 0) {
-      return 0;
+      return null;
     }
 
     const frameIndex = Math.min(
       Math.round(progress.value * (frames.value.length - 1)),
       frames.value.length - 1
     );
-    const { segmentIndex, progressWithinSegment } = frames.value[frameIndex];
+
+    return frames.value[frameIndex];
+  });
+
+  const pathEnd = useDerivedValue(() => {
+    const frame = currentFrame.value;
+
+    if (frame === null) {
+      return 0;
+    }
+
+    const { segmentIndex, progressWithinSegment } = frame;
 
     const arcAtSegmentStart = arcFractions[segmentIndex];
     const arcAtSegmentEnd = arcFractions[segmentIndex + 1];
-    return (
-      arcAtSegmentStart +
-      progressWithinSegment * (arcAtSegmentEnd - arcAtSegmentStart)
-    );
+
+    return arcAtSegmentStart + progressWithinSegment * (arcAtSegmentEnd - arcAtSegmentStart);
   });
 
   const dotX = useDerivedValue(() => {
-    'worklet';
-    if (frames.value.length === 0) {
+    const frame = currentFrame.value;
+
+    if (frame === null) {
       return 0;
     }
 
-    const frameIndex = Math.min(
-      Math.round(progress.value * (frames.value.length - 1)),
-      frames.value.length - 1
-    );
-    const { segmentIndex, progressWithinSegment } = frames.value[frameIndex];
+    const { segmentIndex, progressWithinSegment } = frame;
 
     const xAtSegmentStart = projectedPoints[segmentIndex].x;
     const xAtSegmentEnd = projectedPoints[segmentIndex + 1].x;
-    return (
-      xAtSegmentStart +
-      progressWithinSegment * (xAtSegmentEnd - xAtSegmentStart)
-    );
+
+    return xAtSegmentStart + progressWithinSegment * (xAtSegmentEnd - xAtSegmentStart);
   });
 
   const dotY = useDerivedValue(() => {
-    'worklet';
-    if (frames.value.length === 0) {
+    const frame = currentFrame.value;
+
+    if (frame === null) {
       return 0;
     }
 
-    const frameIndex = Math.min(
-      Math.round(progress.value * (frames.value.length - 1)),
-      frames.value.length - 1
-    );
-    const { segmentIndex, progressWithinSegment } = frames.value[frameIndex];
+    const { segmentIndex, progressWithinSegment } = frame;
 
     const yAtSegmentStart = projectedPoints[segmentIndex].y;
     const yAtSegmentEnd = projectedPoints[segmentIndex + 1].y;
-    return (
-      yAtSegmentStart +
-      progressWithinSegment * (yAtSegmentEnd - yAtSegmentStart)
-    );
+
+    return yAtSegmentStart + progressWithinSegment * (yAtSegmentEnd - yAtSegmentStart);
   });
 
   return { pathEnd, dotX, dotY };

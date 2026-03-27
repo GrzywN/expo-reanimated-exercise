@@ -16,7 +16,6 @@ export interface SkiaMapProps {
   track: GpsPoint[];
   durationInMs?: number;
   mapPadding?: number;
-  routeColor?: string;
   strokeWidth?: number;
   dotRadius?: number;
   dotColor?: string;
@@ -27,7 +26,6 @@ export function SkiaMap({
   track,
   durationInMs = 10_000,
   mapPadding = 48,
-  routeColor = '#FC4C02',
   strokeWidth = 4,
   dotRadius = 8,
   dotColor = '#FFFFFF',
@@ -42,8 +40,14 @@ export function SkiaMap({
     return buildMapLayout(bounds, zoom, screenWidth, screenHeight);
   }, [track, screenWidth, screenHeight, mapPadding]);
 
-  const { projectedPoints, normalizedTimes, arcFractions, routePath } =
-    useTrackData(track, layout);
+  const {
+    projectedPoints,
+    normalizedTimes,
+    arcFractions,
+    routePath,
+    segmentPaths,
+    pointColors,
+  } = useTrackData(track, layout);
 
   const { pathEnd, dotX, dotY } = useRouteAnimation({
     projectedPoints,
@@ -57,10 +61,12 @@ export function SkiaMap({
       <MapTiles tiles={layout.tiles} />
       <RouteCanvas
         routePath={routePath}
+        segmentPaths={segmentPaths}
+        pointColors={pointColors}
+        projectedPoints={projectedPoints}
         pathEnd={pathEnd}
         dotX={dotX}
         dotY={dotY}
-        routeColor={routeColor}
         strokeWidth={strokeWidth}
         dotRadius={dotRadius}
         dotColor={dotColor}
