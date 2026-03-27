@@ -67,7 +67,10 @@ export function useRouteAnimation({
     const arcAtSegmentStart = arcFractions[segmentIndex];
     const arcAtSegmentEnd = arcFractions[segmentIndex + 1];
 
-    return arcAtSegmentStart + progressWithinSegment * (arcAtSegmentEnd - arcAtSegmentStart);
+    return (
+      arcAtSegmentStart +
+      progressWithinSegment * (arcAtSegmentEnd - arcAtSegmentStart)
+    );
   });
 
   const dotX = useDerivedValue(() => {
@@ -82,7 +85,10 @@ export function useRouteAnimation({
     const xAtSegmentStart = projectedPoints[segmentIndex].x;
     const xAtSegmentEnd = projectedPoints[segmentIndex + 1].x;
 
-    return xAtSegmentStart + progressWithinSegment * (xAtSegmentEnd - xAtSegmentStart);
+    return (
+      xAtSegmentStart +
+      progressWithinSegment * (xAtSegmentEnd - xAtSegmentStart)
+    );
   });
 
   const dotY = useDerivedValue(() => {
@@ -97,7 +103,10 @@ export function useRouteAnimation({
     const yAtSegmentStart = projectedPoints[segmentIndex].y;
     const yAtSegmentEnd = projectedPoints[segmentIndex + 1].y;
 
-    return yAtSegmentStart + progressWithinSegment * (yAtSegmentEnd - yAtSegmentStart);
+    return (
+      yAtSegmentStart +
+      progressWithinSegment * (yAtSegmentEnd - yAtSegmentStart)
+    );
   });
 
   return { pathEnd, dotX, dotY };
@@ -112,10 +121,7 @@ function computeFrames(
 
   return Array.from({ length: totalFrames }, (_, frameIndex) => {
     const progress = frameIndex / (totalFrames - 1);
-    const segmentIndex = Math.min(
-      Math.floor(progress * (normalizedTimes.length - 1)),
-      normalizedTimes.length - 2
-    );
+    const segmentIndex = findSegmentIndex(normalizedTimes, progress);
     const segmentDuration =
       normalizedTimes[segmentIndex + 1] - normalizedTimes[segmentIndex];
     const progressWithinSegment =
@@ -125,4 +131,21 @@ function computeFrames(
 
     return { segmentIndex, progressWithinSegment };
   });
+}
+
+function findSegmentIndex(normalizedTimes: number[], progress: number): number {
+  let lo = 0;
+  let hi = normalizedTimes.length - 2;
+
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+
+    if (normalizedTimes[mid] <= progress) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  return lo;
 }
