@@ -16,6 +16,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen name="shake-input" options={{ title: 'Shake Input' }} />
       <Tabs.Screen name="sensor" options={{ title: 'Sensor' }} />
+      <Tabs.Screen name="keyboard" options={{ title: 'Keyboard' }} />
     </Tabs>
   );
 }
