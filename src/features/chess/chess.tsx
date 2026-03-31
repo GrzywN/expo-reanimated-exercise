@@ -1,95 +1,113 @@
-import { useRef, useState } from 'react';
-import { View, Pressable, StyleSheet, Dimensions } from 'react-native';
-import { Game } from 'js-chess-engine';
-import { Piece } from './components/piece';
-const FILES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
-const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'] as const;
+import { View, StyleSheet } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
 
-const BOARD_SIZE = Dimensions.get('window').width;
-const SQUARE_SIZE = BOARD_SIZE / 8;
+import { FILES, RANKS, BOARD_SIZE, SQUARE_SIZE, pieceLand } from './constants';
+import { useChessGame } from './hooks/use-chess-game';
+import { useChessDrag } from './hooks/use-chess-drag';
+import { useChessAnimations } from './hooks/use-chess-animations';
+import { BoardSquare } from './components/board-square';
+import { EndOverlay } from './components/end-overlay';
+import { Piece } from './components/piece';
 
 export function Chess() {
-  const gameRef = useRef(new Game());
-  const [config, setConfig] = useState(() => gameRef.current.exportJson());
-  const [selected, setSelected] = useState<string | null>(null);
-  const [validMoves, setValidMoves] = useState<string[]>([]);
-
-  const handleSquare = (square: string) => {
-    const game = gameRef.current;
-
-    if (selected) {
-      if (validMoves.includes(square)) {
-        game.move(selected, square);
-
-        setConfig(game.exportJson());
-        setSelected(null);
-        setValidMoves([]);
-
-        return;
-      }
-
-      setSelected(null);
-      setValidMoves([]);
-    }
-
-    const piece = config.pieces[square];
-
-    if (!piece) {
-      return;
-    }
-
-    const isWhiteTurn = config.turn === 'white';
-    const isWhitePiece = piece === piece.toUpperCase();
-
-    if (isWhiteTurn !== isWhitePiece) {
-      return;
-    }
-
-    const moves: string[] = game.moves(square) ?? [];
-
-    if (moves.length === 0) {
-      return;
-    }
-
-    setSelected(square);
-    setValidMoves(moves);
-  };
+  const game = useChessGame();
+  const drag = useChessDrag({
+    validMovesRef: game.validMovesRef,
+    onHandleSquare: game.handleSquare,
+    onSelectPiece: game.selectPiece,
+    onExecuteMove: game.executeMove,
+    onClearSelection: game.clearSelection,
+  });
+  const animation = useChessAnimations(game.config);
+  const validMovesSet = new Set(game.validMoves);
 
   return (
     <View style={styles.container}>
-      <View style={styles.board}>
-        {RANKS.map((rank, rankIndex) =>
-          FILES.map((file, fileIndex) => {
-            const square = file + rank;
-            const piece = config.pieces[square];
-            const isLight = (rankIndex + fileIndex) % 2 === 0;
-            const isSelected = selected === square;
-            const isValidMove = validMoves.includes(square);
-            const isLastMove =
-              config.moves &&
-              Object.entries(config.moves).some(
-                ([from, to]) => from === square || to === square
-              );
+      <GestureDetector gesture={drag.gesture}>
+        <View style={styles.board}>
+          {RANKS.map((rank, rankIndex) =>
+            FILES.map((file, fileIndex) => {
+              const square = file + rank;
+              const piece = game.config.pieces[square] as string | undefined;
+              const isLandingSquare = game.lastMove?.to === square;
+              const isInitialRender = game.lastMove === null;
+              const squareIndex = rankIndex * 8 + fileIndex;
 
-            return (
-              <Pressable
-                key={square}
-                style={[
-                  styles.square,
-                  isLight ? styles.squareLight : styles.squareDark,
-                  isSelected && styles.squareSelected,
-                  isLastMove && !isSelected && styles.squareLastMove,
-                  isValidMove && styles.squareValidMove,
-                ]}
-                onPress={() => handleSquare(square)}
-              >
-                {piece && <Piece piece={piece} size={SQUARE_SIZE * 0.85} />}
-                {isValidMove && !piece && <View style={styles.dot} />}
-              </Pressable>
-            );
-          })
-        )}
-      </View>
+              return (
+                <BoardSquare
+                  key={square}
+                  piece={piece}
+                  isLight={(rankIndex + fileIndex) % 2 === 0}
+                  isSelected={game.selected === square}
+                  isValidMove={validMovesSet.has(square)}
+                  isLastMoveSquare={
+                    game.lastMove?.from === square || isLandingSquare
+                  }
+                  isDragSource={
+                    drag.floatingPiece !== null && game.selected === square
+                  }
+                  pieceKey={
+                    isLandingSquare
+                      ? `land-${game.lastMove!.from}-${game.lastMove!.to}`
+                      : square
+                  }
+                  pieceEntering={
+                    isInitialRender
+                      ? FadeIn.delay(squareIndex * 12).duration(350)
+                      : isLandingSquare
+                      ? pieceLand
+                      : undefined
+                  }
+                />
+              );
+            })
+          )}
+
+          {/* King check pulse */}
+          {animation.kingCheckPos && (
+            <Animated.View
+              style={[
+                styles.kingCheckOverlay,
+                animation.kingCheckPos,
+                animation.kingCheckStyle,
+              ]}
+              pointerEvents="none"
+            />
+          )}
+
+          {/* Floating piece during drag */}
+          <Animated.View style={drag.floatingStyle}>
+            {drag.floatingPiece && (
+              <Piece piece={drag.floatingPiece} size={SQUARE_SIZE * 0.85} />
+            )}
+          </Animated.View>
+        </View>
+      </GestureDetector>
+
+      {/* Turn change flash */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.turnFlashOverlay,
+          animation.turnFlashStyle,
+        ]}
+        pointerEvents="none"
+      />
+
+      {/* Check / checkmate screen flash */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.checkOverlay,
+          animation.checkOverlayStyle,
+        ]}
+        pointerEvents="none"
+      />
+
+      {game.config.isFinished && (
+        <EndOverlay checkMate={game.config.checkMate} turn={game.config.turn} />
+      )}
     </View>
   );
 }
@@ -106,31 +124,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  square: {
-    width: SQUARE_SIZE,
-    height: SQUARE_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
+  kingCheckOverlay: {
+    position: 'absolute',
+    backgroundColor: '#cc0000',
   },
-  squareLight: {
-    backgroundColor: '#f0d9b5',
+  turnFlashOverlay: {
+    backgroundColor: '#ffffff',
   },
-  squareDark: {
-    backgroundColor: '#b58863',
-  },
-  squareSelected: {
-    backgroundColor: '#f6f669',
-  },
-  squareLastMove: {
-    backgroundColor: '#cdd16e',
-  },
-  squareValidMove: {
-    backgroundColor: '#90ee90aa',
-  },
-  dot: {
-    width: SQUARE_SIZE * 0.3,
-    height: SQUARE_SIZE * 0.3,
-    borderRadius: SQUARE_SIZE * 0.15,
-    backgroundColor: '#00000033',
+  checkOverlay: {
+    backgroundColor: '#cc0000',
   },
 });
