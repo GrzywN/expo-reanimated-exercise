@@ -75,6 +75,7 @@ export function Sensor({
       return;
     }
 
+    // with spring inital velocity
     shakeX.value = withSequence(
       withTiming(-18, { duration: 70 }),
       withTiming(18, { duration: 70 }),

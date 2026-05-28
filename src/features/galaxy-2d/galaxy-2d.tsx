@@ -121,6 +121,7 @@ export function Planet({ name, data, timer }: PlanetProps) {
 
   const isSun = name === 'Sun';
 
+  // TODO: useDerivedValue
   const animatedStyle = useAnimatedStyle(() => {
     const angleInRadians = (timer.value * Math.PI) / 180;
     const currentAngle = startAngle + angleInRadians * speed;
